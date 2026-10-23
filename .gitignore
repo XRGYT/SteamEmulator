@@ -4,3 +4,6 @@
 *.exp
 *.dll
 *.exe
+
+# Runtime log
+*.log

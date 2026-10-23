@@ -1,6 +1,6 @@
 # SteamEmulator
 
-A tiny x86 stub for `steam_api.dll` that makes a Steam game think Steam is running — no client, no login, no license check.
+A tiny MSVC stub for `steam_api.dll` that makes a Steam game think Steam is running — no client, no login, no license check.
 
 ## What it does
 
@@ -19,32 +19,43 @@ That's enough for many games' "is Steam running / is the app owned / is it insta
 
 ## How it works
 
-- The fake vtable is 128 slots, all pointing at one generic stub. Any call the game makes through it gets logged and answered with `(void*)1` (i.e. "yes" / pointer-ish true).
-- Every exported function appends a line to `mini_emulator.log` in the game's working directory — `function name from 0xADDR tid=NNN` — so you can see exactly what a game is calling and add real answers for whatever it turns out to need.
+- The fake vtable is 128 slots, all pointing at one generic stub. Any call the game makes through it gets logged and answered with a "yes"-ish value.
+- Every exported function appends a line to `mini_emulator.log` in the game's working directory, so you can see exactly what a game is calling and teach the stub a specific answer for whatever it turns out to need.
+
+## Folder layout
+
+```
+x86/    32-bit build (for 32-bit games)
+x64/    64-bit build (for 64-bit games)
+```
+
+Each folder is self-contained: `mini_emulator.c`, a `.def` file, and a `build.bat`. The two are independent implementations of the same idea — the x86 one has richer logging (caller address + thread id), the x64 one is a simpler earlier iteration.
 
 ## Building
 
-Needs MSVC (Visual Studio 2022 Community here), 32-bit build:
+Needs MSVC (Visual Studio 2022 Community here), via the 32/64-bit build environments:
 
 ```bat
+:: 32-bit
+cd x86
 build.bat
 ```
-
-That's just:
+→ produces `steam_api.dll`
 
 ```bat
-cl /nologo /LD mini_emulator.c steam_api.def /Fe:steam_api.dll
+:: 64-bit
+cd x64
+build.bat
 ```
-
-Output: `steam_api.dll` (plus the usual `.lib` / `.exp`).
+→ produces `steam_api64.dll`
 
 ## Using it
 
-1. Build `steam_api.dll` from this repo.
-2. Copy it next to the game's `.exe`, **replacing** the game's original `steam_api.dll`.
+1. Build the DLL that matches the game's architecture.
+2. Copy it next to the game's `.exe`, **replacing** the game's original `steam_api.dll` (rename the 64-bit one to `steam_api.dll` if needed).
 3. Launch the game — Steam doesn't need to be open.
 
-> This DLL is **x86 (32-bit)**. A 64-bit game won't load it; a 64-bit build of this would need to be made.
+> A 32-bit game won't load a 64-bit DLL and vice versa, so pick the matching folder.
 
 ## Caveats
 
